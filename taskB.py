@@ -288,14 +288,14 @@ def classifier(lang, train_x, train_y, test_x, model, embeddings):
 
 
 def run():
-    #train_x, train_y = get_data('dataset/en_training.tsv')
-    #test_x, test_y = get_data('dataset/en_testing_labeled.tsv')
+    #train_x, train_y = get_data('Dataset/en_training.tsv')
+    #test_x, test_y = get_data('Dataset/en_testing_labeled.tsv')
 
       ###########
     ########### split dataset e inserimento file giusti
     ###########    
-    train_x, train_y = get_data('dataset/it_training.tsv')
-    test_x, test_y = get_data('dataset/it_testing_labeled.tsv')
+    train_x, train_y = get_data('Dataset/it_training.tsv')
+    test_x, test_y = get_data('Dataset/it_testing_labeled.tsv')
 
     lang = ['italian']
 
