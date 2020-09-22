@@ -55,28 +55,21 @@ def stampa(lab, cat, tar, file):
 
 
 def run():
-    model_eng_lab = load_file('TaskA/model_english_log_reg_bert.pk')
-    model_eng_cat = load_file('taskBrun1/model_cat_english_log_reg_mult_bert.pk')
-    model_eng_tar = load_file('taskBrun1/model_tar_english_MLP_bert.pk')
 
     model_ita_lab = load_file('TaskA/model_italian_log_reg_tfidf_glove.pk')
     model_ita_cat = load_file('taskBrun1/model_cat_italian_Random_Forest_tfidf.pk')
     model_ita_tar = load_file('taskBrun1/model_tar_italian_Random_Forest_tfidf.pk')
 
-    test_x_eng_lab = load_file('TaskA/test_x_english_bert.pk')
-    test_y_eng_lab = load_file('TaskA/test_y_english.pk')
+
 
     test_x_ita_lab = load_file('TaskA/test_x_italian_tfidf_glove.pk')
     test_y_ita_lab = load_file('TaskA/test_y_italian.pk')
 
-    test_x_eng_cat = load_file('taskBrun1/test_x_cat_english_bert.pk')
-    test_y_eng_cat = load_file('taskBrun1/test_y_cat_english.pk')
 
     test_x_ita_cat = load_file('taskBrun1/test_x_cat_italian_tfidf.pk')
     test_y_ita_cat = load_file('taskBrun1/test_y_cat_italian.pk')
 
-    test_x_eng_tar = load_file('taskBrun1/test_x_tar_english_bert.pk')
-    test_y_eng_tar = load_file('taskBrun1/test_y_tar_english.pk')
+
 
     test_x_ita_tar = load_file('taskBrun1/test_x_tar_italian_tfidf.pk')
     test_y_ita_tar = load_file('taskBrun1/test_y_tar_italian.pk')
@@ -118,42 +111,6 @@ def run():
     print('F1 Mean: ')
     print(tot_score)
 
-    # eng
-    res_label = model_eng_lab.predict(test_x_eng_lab)
-    score_lab = model_eng_lab.score(test_x_eng_lab, test_y_eng_lab)
 
-    res_category = model_eng_cat.predict(test_x_eng_cat)
-    score_cat = model_eng_cat.score(test_x_eng_cat, test_y_eng_cat)
-
-    res_target = model_eng_tar.predict(test_x_eng_tar)
-    score_tar = model_eng_tar.score(test_x_eng_tar, test_y_eng_tar)
-
-    f_res = open("res_english.txt", 'w')
-
-    stampa(res_label, res_category, res_target, f_res)
-
-
-    print("\nEnglish Results saved on file.")
-    
-    scores_cat_divisi = f1_score(res_category, test_y_eng_cat, average=None, labels=[1, 2, 3, 4, 5])
-    scores_cat = f1_score(res_category, test_y_eng_cat, average='macro', labels=[1, 2, 3, 4, 5])
-    score_cat = scores_cat_divisi.mean()
-    print('Categories F1 - Scores:')
-    print(scores_cat_divisi)
-    print('Avarage:')
-    print(scores_cat)
-    
-    print('')
-    scores_tar_divisi = f1_score(res_target, test_y_eng_tar, average=None, labels=[1, 2])
-    scores_tar = f1_score(res_target, test_y_eng_tar, average='macro', labels=[1, 2])
-    score_tar = scores_tar_divisi.mean()
-    print('Targets F1 - Scores:')
-    print(scores_tar_divisi)
-    print('Avarage:')
-    print(scores_tar)
-    print('')
-    tot_score = (scores_cat + scores_tar) / 2
-    print('F1 Mean: ')
-    print(tot_score)
 
 run()

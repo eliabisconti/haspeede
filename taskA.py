@@ -26,7 +26,10 @@ def get_data(filename):
     data = pd.read_table(filename, header=0)
 
     sentences = data.iloc[1:, 1].values
-    labels = data.iloc[1:, 2].values
+    if(len(data.columns) == 4):
+        labels = data.iloc[1:, 2].values
+    else:
+        labels = np.zeros(sentences.size)
     return sentences, labels
 
 
@@ -288,16 +291,13 @@ def classifier(lang, train_x, train_y, test_x, model, embeddings):
 
 
 def run():
-    #train_x, train_y = get_data('Dataset/en_training.tsv')
-    #test_x, test_y = get_data('Dataset/en_testing_labeled.tsv')
 
-    
+
     ###########
     ########### split dataset e inserimento file giusti
     ###########    
-    train_x, train_y = get_data('Dataset/it_training.tsv')
-    test_x, test_y = get_data('Dataset/it_testing_labeled.tsv')
-
+    train_x, train_y = get_data('Dataset/haspeede2_dev_taskAB.tsv')
+    test_x, test_y = get_data('Dataset/haspeede2-test_taskAB-news.tsv')
     lang = ['italian']
 
     # models = ['log_reg', 'svm']
@@ -341,21 +341,12 @@ def run():
                 best_embedding = e
 
     print(best_model)
-    print(lang[0] + " " + m + " " + e + ": " + str(score))
+    print( m + " " + e + ": " + str(score))
 
     train_x, test_x = get_embeddings(lang[0], train_x, test_x, best_embedding)
     best_model.fit(train_x, train_y)
 
 
-    score = best_model.score(test_x, test_y)
-    print("TEST ACCURACY SCORE: %f" % score)
-
-    with open("taskA/test_x_" + lang[0] + "_" + e + ".pk", "wb") as testxout:
-        pickle.dump(test_x, testxout)
-    print("Test set embedded saved.")
-
-    with open("taskA/test_y_" + lang[0] + ".pk", "wb") as testyout:
-        pickle.dump(test_y, testyout)
 
 
     with open("taskA/model_" + lang[0] + "_" + m + "_" + e + ".pk", "wb") as fout:
@@ -364,3 +355,5 @@ def run():
 
     return
 
+
+run()
