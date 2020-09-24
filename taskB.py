@@ -24,14 +24,14 @@ import preprocessing
 
 def get_data(filename):
     data = pd.read_csv(filename, sep = "\t", header = 0, quoting=csv.QUOTE_NONE)
-    sentences = data.iloc[1:, 1].values
-    labels = data.iloc[1:, 3].values
+    sentences = data.iloc[0:, 1].values
+    labels = data.iloc[0:, 3].values
 
     return sentences, labels
 
 def get_test_data(filename):
     data = pd.read_table(filename, header=None, quoting=csv.QUOTE_NONE)
-    sentences = data.iloc[1:, 1].values
+    sentences = data.iloc[0:, 1].values
     return sentences
 
 def get_stem (lang, sentence):
@@ -45,21 +45,17 @@ def get_stem (lang, sentence):
 
 
 
-def tfidf(lang, train_x, test_x):
+def tfidf(lang, train_x, name):
 
     #load
-    load_train = Path("embeddings/tfidf_train_"+lang + ".pk")
-    load_test = Path("embeddings/tfidf_test_"+lang + ".pk")
+    load_data_x = Path("embeddings/" + name + "_"+lang + ".pk")
 
-    if load_test.is_file() & load_train.is_file():
-        with open("embeddings/tfidf_train_"+lang + ".pk", "rb") as fin:
-            train_x = pickle.load(fin)
-
-        with open("embeddings/tfidf_test_"+lang + ".pk", "rb") as fin:
-            test_x = pickle.load(fin)
+    if load_data_x.is_file():
+        with open("embeddings/" + name + "_" +lang + ".pk", "rb") as fin:
+            data = pickle.load(fin)
 
         # print("Loaded from file TFIDF.")
-        return train_x, test_x
+        return data
 
     else:
 
@@ -74,27 +70,49 @@ def tfidf(lang, train_x, test_x):
         vectorizer.fit(fit_data)
 
         train_x = vectorizer.transform(train_x).toarray()
-        test_x = vectorizer.transform(test_x).toarray()
 
         # dump
-        with open("embeddings/tfidf_train_"+lang + ".pk", "wb") as fout:
+        with open("embeddings/" + name + "_" +lang + ".pk", "wb") as fout:
             pickle.dump(train_x, fout)
 
-        with open("embeddings/tfidf_test_"+lang + ".pk", "wb") as fout:
-            pickle.dump(test_x, fout)
-
+        with open("embeddings/tfidf_vectorizer_" + lang + ".pk", "wb") as fout:
+            pickle.dump(vectorizer,fout)
         # print("TFIDF dumped on file.")
 
-        return train_x, test_x
+        return train_x
 
+def tfidf_test(lang, test_x, name):
+
+    #load
+    load_data_x = Path("embeddings/" + name + "_"+lang + ".pk")
+
+    if load_data_x.is_file():
+        with open("embeddings/" + name + "_" +lang + ".pk", "rb") as fin:
+            data = pickle.load(fin)
+
+        # print("Loaded from file TFIDF.")
+        return data
+
+    else:
+
+        with open("embeddings/tfidf_vectorizer_" + lang + ".pk", "rb") as fin:
+            vectorizer= pickle.load(fin)
+
+            test_x = vectorizer.transform(test_x).toarray()
+
+            # dump
+            with open("embeddings/" + name + "_" +lang + ".pk", "wb") as fout:
+                pickle.dump(test_x, fout)
+
+        return test_x
 
 def bert(lang, data_x, name):
 
     # load
-    load_data_x = Path("embeddings/" + name + lang + ".pk")
+    load_data_x = Path("embeddings/" + name + "_" +lang + ".pk")
 
     if load_data_x.is_file():
-        with open("embeddings/"+ name + lang + ".pk", "rb") as fin:
+        with open("embeddings/"+ name + "_" + lang + ".pk", "rb") as fin:
             data_features = pickle.load(fin)
 
         # print("Loaded from file BERT.")
@@ -146,7 +164,7 @@ def bert(lang, data_x, name):
             data_features.append(features[i])
 
         # dump
-        with open("embeddings/" + name + lang + ".pk", "wb") as fout:
+        with open("embeddings/" + name + "_" + lang + ".pk", "wb") as fout:
             pickle.dump(data_features, fout)
 
         # print("BERT dumped on file.")
@@ -156,10 +174,10 @@ def bert(lang, data_x, name):
 
 def glove(lang, train_x, name):
     # load
-    load_data_x = Path("embeddings/" + name + lang + ".pk")
+    load_data_x = Path("embeddings/" + name + "_" + lang + ".pk")
 
     if load_data_x.is_file():
-        with open("embeddings/" + name + lang + ".pk", "rb") as fin:
+        with open("embeddings/" + name + "_" + lang + ".pk", "rb") as fin:
             data_features = pickle.load(fin)
 
         # print("Loaded from file GLOVE")
@@ -198,71 +216,59 @@ def glove(lang, train_x, name):
         np.seterr('raise')
 
         # dump
-        with open("embeddings/" + name + lang + ".pk", "wb") as fout:
+        with open("embeddings/" + name + "_" + lang + ".pk", "wb") as fout:
             pickle.dump(sentences_embeddings, fout)
 
         # print("GLOVE dumped on file.")
         return sentences_embeddings
 
 
-def get_embeddings(lang, train_x, test_x, embeddings):
+def get_embeddings(lang, data, name, embeddings, testing):
     # words embedding
     if embeddings == 'tfidf':
-        train_x, test_x = tfidf(lang, train_x, test_x)
-
+        if(testing):
+            data = tfidf_test(lang, data, name+"tfidf")
+        else:
+            data = tfidf(lang, data, name+"tfidf")
     elif embeddings == 'bert':
-        train_x = bert(lang, train_x, "bert_train_")
-        test_x = bert(lang, test_x, "bert_test_")
+        data = bert(lang, data, name+"bert")
 
     elif embeddings == 'glove':
-        train_x = glove(lang, train_x, "glove_train_")
-        test_x = glove(lang, test_x, "glove_test_")
+        data = glove(lang, data, name+"glove")
 
     elif embeddings == 'tfidf_bert':
-        train_x_tf, test_x_tf = tfidf(lang, train_x, test_x)
-        train_x_bert = bert(lang, train_x, "bert_train_")
-        test_x_bert = bert(lang, test_x, "bert_test_")
+        data_tf = tfidf(lang, data)
+        data_bert = bert(lang, data, name+"bert")
 
-        train_x = np.concatenate((np.array(train_x_tf), np.array(train_x_bert)), axis=1)
-        test_x = np.concatenate((np.array(test_x_tf), np.array(test_x_bert)), axis=1)
+        data = np.concatenate((np.array(data_tf), np.array(data_bert)), axis=1)
 
     elif embeddings == 'tfidf_glove':
-        train_x_tf, test_x_tf = tfidf(lang, train_x, test_x)
-        train_x_glove = glove(lang, train_x, "glove_train_")
-        test_x_glove = glove(lang, test_x, "glove_test_")
+        data_tf = tfidf(lang, data, name+"tfidf")
+        data_glove = glove(lang, data, name+"glove")
 
-        train_x = np.concatenate((np.array(train_x_tf), np.array(train_x_glove)), axis=1)
-        test_x = np.concatenate((np.array(test_x_tf), np.array(test_x_glove)), axis=1)
+        data = np.concatenate((np.array(data_tf), np.array(data_glove)), axis=1)
 
     elif embeddings == 'all':
-        train_x_tf, test_x_tf = tfidf(lang, train_x, test_x)
-        train_x_bert = bert(lang, train_x, "bert_train_")
-        test_x_bert = bert(lang, test_x, "bert_test_")
-        train_x_glove = glove(lang, train_x, "glove_train_")
-        test_x_glove = glove(lang, test_x, "glove_test_")
+        data_tf = tfidf(lang, data, name+tfidf)
+        data_bert = bert(lang, data, name+"bert")
+        data_glove = glove(lang, data, name+"glove")
 
-        train_x = np.concatenate((np.array(train_x_tf), np.array(train_x_bert), np.array(train_x_glove)), axis=1)
-        test_x = np.concatenate((np.array(test_x_tf), np.array(test_x_bert), np.array(test_x_glove)), axis=1)
+        data = np.concatenate((np.array(data_tf), np.array(data_bert), np.array(data_glove)), axis=1)
 
 
     else:
         print("Wrong Embedding pick")
         exit(1)
 
-    return train_x, test_x
+    return data
 
 
-def classifier(lang, train_x, train_y, test_x, model, embeddings):
-    print("Lang: " + lang + "\nEmbeddings: " + embeddings + "\nModel: " + model)
 
-    train_x, test_x = get_embeddings(lang, train_x, test_x, embeddings)
-
+def classifier(train_x, train_y, model):
 
     feature_selection = SelectFromModel(ensemble.RandomForestClassifier(n_estimators=100, class_weight='balanced', n_jobs=10))
 
     train_x = feature_selection.fit_transform(train_x, train_y)
-    test_x = feature_selection.transform(test_x)
-
 
     # model classification
     print("Classification started...\n")
@@ -292,9 +298,7 @@ def classifier(lang, train_x, train_y, test_x, model, embeddings):
 def run():
 
 
-    ########### split dataset e inserimento file giusti
     train_x, train_y = get_data('Dataset/haspeede2_dev_taskAB.tsv')
-    test_x = get_test_data('Dataset/haspeede2_test_taskAB-tweets.tsv')
     lang = ['italian']
     # models = ['log_reg', 'svm']
     models = ['log_reg']
@@ -311,14 +315,6 @@ def run():
             train_y = np.delete(train_y, i, 0)
     train_x = corpus
 
-    test = []
-    for i in range (0, len(test_x)):
-        sentence = preprocessing.pre_process(test_x[i].lower(), False);
-        # sentence = get_stem(lang[1], sentence)
-
-        test.append(sentence)
-    test_x = test
-
     best_score = 0.0
     best_model = None
     best_embedding = None
@@ -326,29 +322,60 @@ def run():
     for m in models:
         for e in embeddings:
 
-            score, model = classifier(lang[0], train_x, train_y, test_x, m, e)
-            train_x, test_x = get_embeddings(lang[0], train_x, test_x, e)
-            model.fit(train_x, train_y)
+            embedded_train_x = get_embeddings(lang[0], train_x, "train_", e, False)
+            print("Lang: " + lang[0] + "\tEmbeddings: " + e + "\tModel: " + m)
+            score, model = classifier(embedded_train_x, train_y, m)
 
             if score > best_score:
                 best_score = score
                 best_model = model
                 best_embedding = e
 
+    print("BEST MODEL: ")
     print(best_model)
     print( m + " " + e + ": " + str(score))
 
-    train_x, test_x = get_embeddings(lang[0], train_x, test_x, best_embedding)
-    best_model.fit(train_x, train_y)
+    embedded_train_x = get_embeddings(lang[0], train_x, "train_", best_embedding, False)
+    best_model.fit(embedded_train_x, train_y)
+
+    with open("taskB/model_" + m + "_" + e + ".pk", "wb") as fout:
+       pickle.dump(best_model, fout)
+    print("Model saved.")
+
+    #####TESTING     on  TWEETS    #########
+
+    test = []
+    test_x = get_test_data('Dataset/haspeede2_test_taskAB-tweets.tsv')
+
+    for i in range(0, len(test_x)):
+        sentence = preprocessing.pre_process(test_x[i].lower(), False);
+        test.append(sentence)
+    test_x = test
+
+    test_x = get_embeddings(lang[0], test_x, "test_tweets_", best_embedding, True)
 
     test_y = best_model.predict(test_x)
 
-    with open("taskB/test_y_tweets_"+ m +"_"+ e + ".pk", "wb") as testyout:
+    with open("taskB/test_y_tweets_" + e + ".pk", "wb") as testyout:
         pickle.dump(test_y, testyout)
 
-    with open("taskB/model_tweets_" + m + "_" + e + ".pk", "wb") as fout:
-       pickle.dump(best_model, fout)
-    print("Model saved.")
+    #####TESTING     on  NEWS    #########
+
+    test = []
+    test_x = get_test_data('Dataset/haspeede2-test_taskAB-news.tsv')
+
+    for i in range(0, len(test_x)):
+        sentence = preprocessing.pre_process(test_x[i].lower(), False);
+        test.append(sentence)
+    test_x = test
+
+    test_x = get_embeddings(lang[0], test_x, "test_news_", best_embedding, True)
+
+    test_y = best_model.predict(test_x)
+
+    with open("taskB/test_y_news_" + e + ".pk", "wb") as testyout:
+        pickle.dump(test_y, testyout)
+
 
 
     return
