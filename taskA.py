@@ -18,20 +18,21 @@ from sklearn.model_selection import GridSearchCV
 
 import torch
 import transformers as ppb  # pytorch transformers
-
+import csv
 import preprocessing
 
 
 def get_data(filename):
-    data = pd.read_table(filename, header=0)
-
+    data = pd.read_csv(filename, sep = "\t", header = 0, quoting=csv.QUOTE_NONE)
     sentences = data.iloc[1:, 1].values
-    if(len(data.columns) == 4):
-        labels = data.iloc[1:, 2].values
-    else:
-        labels = np.zeros(sentences.size)
+    labels = data.iloc[1:, 2].values
+
     return sentences, labels
 
+def get_test_data(filename):
+    data = pd.read_table(filename, header=None, quoting=csv.QUOTE_NONE)
+    sentences = data.iloc[1:, 1].values
+    return sentences
 
 def get_stem (lang, sentence):
     stemmer = SnowballStemmer(lang)
@@ -293,17 +294,14 @@ def classifier(lang, train_x, train_y, test_x, model, embeddings):
 def run():
 
 
-    ###########
     ########### split dataset e inserimento file giusti
-    ###########    
     train_x, train_y = get_data('Dataset/haspeede2_dev_taskAB.tsv')
-    test_x, test_y = get_data('Dataset/haspeede2-test_taskAB-news.tsv')
+    test_x = get_test_data('Dataset/haspeede2_test_taskAB-tweets.tsv')
     lang = ['italian']
-
     # models = ['log_reg', 'svm']
     models = ['log_reg']
     # embeddings = ['tfidf', 'glove', 'bert', 'tfidf_bert', 'tfidf_glove', 'all']
-    embeddings = ['tfidf_glove']
+    embeddings = ['tfidf']
     corpus = []
     for i in range (0, len(train_x)):
         sentence = preprocessing.pre_process(train_x[i].lower(), False);
@@ -321,7 +319,6 @@ def run():
         # sentence = get_stem(lang[1], sentence)
 
         test.append(sentence)
-
     test_x = test
 
     best_score = 0.0
@@ -346,12 +343,15 @@ def run():
     train_x, test_x = get_embeddings(lang[0], train_x, test_x, best_embedding)
     best_model.fit(train_x, train_y)
 
+    test_y = best_model.predict(test_x)
 
+    with open("taskB/test_y_tweets_"+ m +"_"+ e + ".pk", "wb") as testyout:
+        pickle.dump(test_y, testyout)
 
-
-    with open("taskA/model_" + lang[0] + "_" + m + "_" + e + ".pk", "wb") as fout:
+    with open("taskB/model_tweets_" + m + "_" + e + ".pk", "wb") as fout:
        pickle.dump(best_model, fout)
     print("Model saved.")
+
 
     return
 
