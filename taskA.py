@@ -70,8 +70,6 @@ def tfidf(lang, train_x, test_x):
         fit_data = []
         for sent in train_x:
             fit_data.append(sent)
-        for sent in test_x:
-            fit_data.append(sent)
 
         vectorizer.fit(fit_data)
 
