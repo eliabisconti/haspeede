@@ -121,7 +121,7 @@ def bert(lang, data_x, name):
     else:
 
         # pretrained model e tokenizatore
-        model_class, tokenizer_class, pretrained_weights = (ppb.DistilBertModel, ppb.DistilBertTokenizer, 'bert-base-multilingual-uncased')
+        model_class, tokenizer_class, pretrained_weights = (ppb.DistilBertModel, ppb.DistilBertTokenizer, 'distilbert-base-multilingual-cased')
         tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
         model = model_class.from_pretrained(pretrained_weights)
 
@@ -180,7 +180,7 @@ def glove(lang, train_x, name):
         with open("embeddings/" + name + "_" + lang + ".pk", "rb") as fin:
             data_features = pickle.load(fin)
 
-        # print("Loaded from file GLOVE")
+        print("Loaded from file GLOVE" + name)
         return data_features
 
     else:
@@ -219,7 +219,7 @@ def glove(lang, train_x, name):
         with open("embeddings/" + name + "_" + lang + ".pk", "wb") as fout:
             pickle.dump(sentences_embeddings, fout)
 
-        # print("GLOVE dumped on file.")
+            print("GLOVE dumped on file." + name)
         return sentences_embeddings
 
 
@@ -237,7 +237,7 @@ def get_embeddings(lang, data, name, embeddings, testing):
         data = glove(lang, data, name+"glove")
 
     elif embeddings == 'tfidf_bert':
-        data_tf = tfidf(lang, data)
+        data_tf = tfidf(lang, data, name+"tfidf")
         data_bert = bert(lang, data, name+"bert")
 
         data = np.concatenate((np.array(data_tf), np.array(data_bert)), axis=1)
@@ -249,7 +249,7 @@ def get_embeddings(lang, data, name, embeddings, testing):
         data = np.concatenate((np.array(data_tf), np.array(data_glove)), axis=1)
 
     elif embeddings == 'all':
-        data_tf = tfidf(lang, data, name+tfidf)
+        data_tf = tfidf(lang, data, name+"tfidf")
         data_bert = bert(lang, data, name+"bert")
         data_glove = glove(lang, data, name+"glove")
 
@@ -300,10 +300,8 @@ def run():
 
     train_x, train_y = get_data('Dataset/haspeede2_dev_taskAB.tsv')
     lang = ['italian']
-    # models = ['log_reg', 'svm']
     models = ['log_reg']
-    # embeddings = ['tfidf', 'glove', 'bert', 'tfidf_bert', 'tfidf_glove', 'all']
-    embeddings = ['tfidf']
+    embeddings = ['all']
     corpus = []
     for i in range (0, len(train_x)):
         sentence = preprocessing.pre_process(train_x[i].lower(), False);
@@ -319,13 +317,13 @@ def run():
     best_model = None
     best_embedding = None
 
-    for m in models:
-        for e in embeddings:
+    for e in embeddings:
+        embedded_train_x = get_embeddings(lang[0], train_x, "train_", e, False)
+        for m in models:
 
-            embedded_train_x = get_embeddings(lang[0], train_x, "train_", e, False)
             print("Lang: " + lang[0] + "\tEmbeddings: " + e + "\tModel: " + m)
             score, model = classifier(embedded_train_x, train_y, m)
-
+            print ("SCORE: " + str(score))
             if score > best_score:
                 best_score = score
                 best_model = model
@@ -333,7 +331,7 @@ def run():
 
     print("BEST MODEL: ")
     print(best_model)
-    print( m + " " + e + ": " + str(score))
+    print( m + " " + best_embedding + ": " + str(score))
 
     embedded_train_x = get_embeddings(lang[0], train_x, "train_", best_embedding, False)
     best_model.fit(embedded_train_x, train_y)
@@ -356,7 +354,7 @@ def run():
 
     test_y = best_model.predict(test_x)
 
-    with open("taskB/test_y_tweets_" + e + ".pk", "wb") as testyout:
+    with open("taskB/test_y_tweets_" + m + e + ".pk", "wb") as testyout:
         pickle.dump(test_y, testyout)
 
     #####TESTING     on  NEWS    #########
@@ -373,7 +371,7 @@ def run():
 
     test_y = best_model.predict(test_x)
 
-    with open("taskB/test_y_news_" + e + ".pk", "wb") as testyout:
+    with open("taskB/test_y_news_" + m + "_" + e + ".pk", "wb") as testyout:
         pickle.dump(test_y, testyout)
 
 
